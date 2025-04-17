@@ -18,7 +18,7 @@ const App = () => {
   const [selectedToken, setSelectedToken] = useState(null);
   const [privateKeys, setPrivateKeys] = useState([]);
   const [transferSettings, setTransferSettings] = useState({
-    minDelay: 30,
+    minDelay: 10,
     maxDelay: 3600,
     gasPrice: 'auto',
   });
@@ -89,7 +89,7 @@ const App = () => {
   // 渲染日志组件
   const renderLogs = () => {
     return (
-      <Card title="操作日志" className="mb-4">
+      <Card title="操作日志" className="mb-4" bodyStyle={{ padding: '12px' }}>
         <TransactionLogs logs={logs} onClear={clearLogs} />
       </Card>
     );
@@ -97,8 +97,8 @@ const App = () => {
 
   return (
     <Layout className="min-h-screen">
-      <Header className="flex items-center">
-        <Title level={3} className="text-white m-0">Token自转工具</Title>
+      <Header className="flex items-center bg-white shadow-md">
+        <Title level={3} className="text-black m-0">Token自转工具</Title>
       </Header>
       
       <Content className="px-8 py-6">

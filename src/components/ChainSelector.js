@@ -8,7 +8,7 @@ const { Option } = Select;
 const ChainSelector = ({ onChainSelected, disabled }) => {
   const [chains, setChains] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedChainId, setSelectedChainId] = useState(null);
+  const [selectedChainId, setSelectedChainId] = useState();
 
   // 加载链列表
   useEffect(() => {
@@ -17,6 +17,17 @@ const ChainSelector = ({ onChainSelected, disabled }) => {
         setLoading(true);
         const chainsData = getChains();
         setChains(chainsData);
+        
+        // 默认选择Sahara链
+        const saharaChain = chainsData.find(chain => 
+          chain.name.toLowerCase().includes('sahara')
+        );
+        
+        if (saharaChain) {
+          setSelectedChainId(saharaChain.id);
+          onChainSelected(saharaChain);
+        }
+        
         setLoading(false);
       } catch (error) {
         console.error('加载链失败:', error);
@@ -25,7 +36,7 @@ const ChainSelector = ({ onChainSelected, disabled }) => {
     };
 
     loadChains();
-  }, []);
+  }, [onChainSelected]);
 
   // 当选择链改变时
   const handleChainChange = (chainId) => {

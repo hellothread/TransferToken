@@ -1,6 +1,21 @@
 // 链配置
 export const chains = [
   {
+    id: 313313,
+    name: 'Sahara Testnet',
+    symbol: 'SAHARA',
+    rpcUrl: 'https://testnet.saharalabs.ai',
+    chainId: 313313,
+    explorerUrl: 'https://testnet-explorer.saharalabs.ai',
+    logo: 'https://i.imgur.com/7VL4Mdk.png',
+    nativeToken: {
+      symbol: 'SAHARA',
+      name: 'Sahara',
+      decimals: 18,
+    },
+    popularTokens: [],
+  },
+  {
     id: 1,
     name: 'Ethereum',
     symbol: 'ETH',
@@ -136,21 +151,7 @@ export const chains = [
       },
     ],
   },
-  {
-    id: 313313,
-    name: 'Sahara Testnet',
-    symbol: 'SAHARA',
-    rpcUrl: 'https://testnet.saharalabs.ai',
-    chainId: 313313,
-    explorerUrl: 'https://testnet-explorer.saharalabs.ai',
-    logo: 'https://i.imgur.com/7VL4Mdk.png',
-    nativeToken: {
-      symbol: 'SAHARA',
-      name: 'Sahara',
-      decimals: 18,
-    },
-    popularTokens: [],
-  }
+  
 ];
 
 // 获取链列表

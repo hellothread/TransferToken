@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { List, Typography, Tag, Space, Button, Radio, Input, Badge, Tooltip, Empty, Popconfirm, DatePicker, Select, Dropdown, Menu } from 'antd';
+import { List, Typography, Tag, Space, Button, Radio, Input, Badge, Tooltip, Empty, Popconfirm } from 'antd';
 import { 
   LinkOutlined, 
   CheckCircleOutlined, 
@@ -10,8 +10,6 @@ import {
   DeleteOutlined, 
   SearchOutlined,
   ClearOutlined,
-  FilterOutlined,
-  CalendarOutlined,
   SortAscendingOutlined,
   SortDescendingOutlined
 } from '@ant-design/icons';
@@ -20,8 +18,6 @@ import moment from 'moment';
 
 const { Text, Link } = Typography;
 const { Search } = Input;
-const { RangePicker } = DatePicker;
-const { Option } = Select;
 
 const LOG_TYPES = {
   SUCCESS: 'success',
@@ -83,15 +79,10 @@ const parseMessageWithLinks = (message, explorerUrl) => {
 
 const TransactionLogs = ({ logs, onClear }) => {
   const logEndRef = useRef(null);
+  const logContainerRef = useRef(null);
   const [filter, setFilter] = useState('all');
   const [searchText, setSearchText] = useState('');
-  const [dateRange, setDateRange] = useState(null);
   const [sortOrder, setSortOrder] = useState('desc'); // 'desc' 或 'asc'
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [isFilterVisible, setIsFilterVisible] = useState(false);
-  
-  // 从日志中提取所有可能的类别
-  const categories = [...new Set(logs.filter(log => log.category).map(log => log.category))];
   
   // 日志统计
   const logCounts = {
@@ -104,51 +95,46 @@ const TransactionLogs = ({ logs, onClear }) => {
   
   // 筛选日志
   const filteredLogs = logs.filter(log => {
-    // 首先按类型筛选
+    // 按类型筛选
     const typeMatches = filter === 'all' || log.type === filter;
-    
-    // 按类别筛选
-    const categoryMatches = categoryFilter === 'all' || log.category === categoryFilter;
-    
-    // 按日期范围筛选
-    let dateMatches = true;
-    if (dateRange && dateRange[0] && dateRange[1]) {
-      const logDate = moment(log.timestamp || log.time, "YYYY-MM-DD HH:mm:ss");
-      dateMatches = logDate.isBetween(dateRange[0], dateRange[1], null, '[]');
-    }
     
     // 按搜索文本筛选
     const textMatches = !searchText || 
       log.message.toLowerCase().includes(searchText.toLowerCase()) ||
-      (log.time && log.time.toLowerCase().includes(searchText.toLowerCase())) ||
-      (log.category && log.category.toLowerCase().includes(searchText.toLowerCase()));
+      (log.time && log.time.toLowerCase().includes(searchText.toLowerCase()));
       
-    return typeMatches && categoryMatches && dateMatches && textMatches;
+    return typeMatches && textMatches;
   });
   
   // 排序日志
   const sortedLogs = [...filteredLogs].sort((a, b) => {
-    const dateA = moment(a.timestamp || a.time, "YYYY-MM-DD HH:mm:ss");
-    const dateB = moment(b.timestamp || b.time, "YYYY-MM-DD HH:mm:ss");
+    const dateA = new Date(a.time);
+    const dateB = new Date(b.time);
     
     return sortOrder === 'desc' 
-      ? dateB.valueOf() - dateA.valueOf() 
-      : dateA.valueOf() - dateB.valueOf();
+      ? dateB - dateA 
+      : dateA - dateB;
   });
   
   // 自动滚动到最新日志
   useEffect(() => {
-    if (logs.length > 0 && (!searchText && filter === 'all' && !dateRange && categoryFilter === 'all')) {
-      logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (logs.length > 0) {
+      if (sortOrder === 'desc') {
+        // 当最新的日志在顶部时（降序排列），滚动到顶部
+        logContainerRef.current?.scrollTo(0, 0);
+      } else {
+        // 当最新的日志在底部时（升序排列），滚动到底部
+        logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
     }
-  }, [logs, searchText, filter, dateRange, categoryFilter]);
+  }, [logs, sortOrder]);
   
   // 导出日志
   const exportLogs = () => {
     if (logs.length === 0) return;
     
     const logContent = sortedLogs.map(log => 
-      `[${log.time}] [${log.type.toUpperCase()}]${log.category ? ` [${log.category}]` : ''} ${log.message}`
+      `[${log.time}] [${log.type.toUpperCase()}] ${log.message}`
     ).join('\n');
     
     const blob = new Blob([logContent], { type: 'text/plain' });
@@ -156,37 +142,6 @@ const TransactionLogs = ({ logs, onClear }) => {
     const a = document.createElement('a');
     a.href = url;
     a.download = `transaction_logs_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-  
-  // 导出为CSV
-  const exportAsCSV = () => {
-    if (logs.length === 0) return;
-    
-    // CSV 表头
-    const headers = ['时间', '类型', '类别', '消息'];
-    
-    // 准备CSV数据
-    const csvContent = [
-      headers.join(','),
-      ...sortedLogs.map(log => {
-        return [
-          `"${log.time}"`,
-          `"${log.type.toUpperCase()}"`,
-          `"${log.category || ''}"`,
-          `"${log.message.replace(/"/g, '""')}"`
-        ].join(',');
-      })
-    ].join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `transaction_logs_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -203,15 +158,6 @@ const TransactionLogs = ({ logs, onClear }) => {
   // 处理搜索
   const handleSearch = (value) => {
     setSearchText(value);
-  };
-  
-  // 重置所有筛选条件
-  const resetFilters = () => {
-    setFilter('all');
-    setSearchText('');
-    setDateRange(null);
-    setCategoryFilter('all');
-    setSortOrder('desc');
   };
   
   // 渲染筛选器
@@ -254,42 +200,6 @@ const TransactionLogs = ({ logs, onClear }) => {
           />
         </Tooltip>
       </div>
-      
-      {isFilterVisible && (
-        <div className="advanced-filters flex flex-wrap gap-2 mt-2 p-2 bg-gray-100 rounded">
-          {categories.length > 0 && (
-            <Select
-              placeholder="选择类别"
-              value={categoryFilter}
-              onChange={value => setCategoryFilter(value)}
-              style={{ width: 120 }}
-              size="small"
-            >
-              <Option value="all">所有类别</Option>
-              {categories.map(category => (
-                <Option key={category} value={category}>{category}</Option>
-              ))}
-            </Select>
-          )}
-          
-          <RangePicker 
-            size="small"
-            value={dateRange}
-            onChange={(dates) => setDateRange(dates)}
-            format="YYYY-MM-DD"
-            placeholder={['开始日期', '结束日期']}
-            allowClear
-          />
-          
-          <Button 
-            size="small" 
-            onClick={resetFilters}
-            icon={<ClearOutlined />}
-          >
-            重置筛选
-          </Button>
-        </div>
-      )}
     </div>
   );
   
@@ -317,33 +227,14 @@ const TransactionLogs = ({ logs, onClear }) => {
           allowClear
         />
         
-        <Tooltip title="高级筛选">
-          <Button 
-            size="small" 
-            type={isFilterVisible ? "primary" : "default"}
-            icon={<FilterOutlined />}
-            onClick={() => setIsFilterVisible(!isFilterVisible)}
-          />
-        </Tooltip>
-        
-        <Dropdown overlay={
-          <Menu>
-            <Menu.Item key="export-txt" onClick={exportLogs} icon={<DownloadOutlined />}>
-              导出为文本文件
-            </Menu.Item>
-            <Menu.Item key="export-csv" onClick={exportAsCSV} icon={<DownloadOutlined />}>
-              导出为CSV
-            </Menu.Item>
-          </Menu>
-        } disabled={logs.length === 0}>
-          <Button 
-            size="small" 
-            icon={<DownloadOutlined />}
-            disabled={logs.length === 0}
-          >
-            导出
-          </Button>
-        </Dropdown>
+        <Button 
+          size="small" 
+          icon={<DownloadOutlined />}
+          onClick={exportLogs}
+          disabled={logs.length === 0}
+        >
+          导出
+        </Button>
         
         <Tooltip title="清空日志">
           <Popconfirm
@@ -372,7 +263,11 @@ const TransactionLogs = ({ logs, onClear }) => {
       
       {logs.length > 0 && renderFilter()}
       
-      <div className="overflow-y-auto flex-grow border border-gray-200 rounded p-2 bg-gray-50">
+      <div 
+        ref={logContainerRef}
+        className="overflow-y-auto flex-grow bg-white rounded"
+        style={{ maxHeight: '400px', height: '400px' }}
+      >
         {logs.length === 0 ? (
           <Empty 
             description="暂无日志记录" 
@@ -389,30 +284,34 @@ const TransactionLogs = ({ logs, onClear }) => {
           <List
             size="small"
             dataSource={sortedLogs}
+            split={false}
             renderItem={(log) => (
               <List.Item 
                 key={log.id}
-                className={`py-1 border-b border-dashed last:border-0 hover:bg-gray-100`}
+                className="py-2 px-3 hover:bg-gray-50 border-b border-gray-100 last:border-0"
               >
-                <Space className="w-full" direction="vertical" size={1}>
-                  <div className="flex justify-between items-center w-full">
-                    <Space>
-                      <Text className="text-gray-500">[{log.time}]</Text>
-                      <Tag 
-                        icon={getTagIcon(log.type)} 
-                        color={getTagType(log.type)}
-                      >
-                        {log.type.toUpperCase()}
-                      </Tag>
-                      {log.category && (
-                        <Tag color="blue">{log.category}</Tag>
-                      )}
-                    </Space>
+                <div className="flex items-center w-full">
+                  <div className="w-20 flex-shrink-0">
+                    <Text className="text-gray-500 text-xs">{log.time}</Text>
                   </div>
-                  <div className="text-sm break-all">
+                  <div className="w-20 flex-shrink-0 flex justify-center">
+                    <Tag 
+                      icon={getTagIcon(log.type)} 
+                      color={getTagType(log.type)}
+                      style={{ margin: 0, width: '64px', textAlign: 'center', fontSize: '11px' }}
+                    >
+                      {log.type.toUpperCase()}
+                    </Tag>
+                  </div>
+                  {log.category && (
+                    <div className="w-16 flex-shrink-0 flex justify-center mr-2">
+                      <Tag color="blue" style={{ margin: 0, fontSize: '11px' }}>{log.category}</Tag>
+                    </div>
+                  )}
+                  <div className="text-sm break-all flex-1">
                     {parseMessageWithLinks(log.message)}
                   </div>
-                </Space>
+                </div>
               </List.Item>
             )}
           />
