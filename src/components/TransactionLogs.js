@@ -1,22 +1,17 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { List, Typography, Tag, Space, Button, Radio, Input, Badge, Tooltip, Empty, Popconfirm } from 'antd';
 import { 
-  LinkOutlined, 
   CheckCircleOutlined, 
   CloseCircleOutlined, 
   WarningOutlined,
   InfoCircleOutlined,
   DownloadOutlined,
   DeleteOutlined, 
-  SearchOutlined,
-  ClearOutlined,
   SortAscendingOutlined,
   SortDescendingOutlined
 } from '@ant-design/icons';
-import { formatTimestamp } from '../utils/formatters';
-import moment from 'moment';
 
-const { Text, Link } = Typography;
+const { Text } = Typography;
 const { Search } = Input;
 
 const LOG_TYPES = {
